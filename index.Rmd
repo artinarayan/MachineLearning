@@ -12,9 +12,10 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE,echo = TRUE,cache = TRUE)
 ```
+[Github Repo](https://github.com/artinarayan/MachineLearning)
 
+## Overview 
 
-## Overview
 Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. The goal of this project is to use the data (http://groupware.les.inf.puc-rio.br/har) from accelerometers on the belt, forearm, arm, and dumbell of 6 participants and to predict the manner in which they did the exercise.  Following steps will be performed for prediction:
 
 - cleaning datasets of irrelevant columns 
