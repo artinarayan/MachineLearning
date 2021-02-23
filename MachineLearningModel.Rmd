@@ -1,0 +1,165 @@
+---
+title: "Machine Learning Models"
+author: "A Kannankeril"
+date: "2/22/2021"
+output:
+  html_document: 
+    df_print: paged
+  pdf_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE,echo = TRUE,cache = TRUE)
+```
+
+
+## Overview
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. The goal of this project is to use the data (http://groupware.les.inf.puc-rio.br/har) from accelerometers on the belt, forearm, arm, and dumbell of 6 participants and to predict the manner in which they did the exercise.  Following steps will be performed for prediction:
+
+- cleaning datasets of irrelevant columns 
+- Splitting the training data set into two partitions 
+- Running 3 different training models
+- Assessing models to find the best fit
+- Predicting the outcome using the best model
+
+
+```{r libraries, echo=FALSE}
+library(caret)
+library(randomForest)
+library(rpart) 
+library(rpart.plot)
+library(RColorBrewer)
+library(rattle)
+```
+### 1. DATA LOADING AND CLEANING
+In this step, we tidy the data by removing all columns with NAs from both the training and test data. Columns 1 to 7 are removed from both datasets which are not relevant features.
+
+```{r DataLoadingCleaning}
+#load data
+training <- read.csv('./pml-training.csv',header=T,
+                     na.strings=c("NA","#DIV/0!", "") )
+validation <- read.csv('./pml-testing.csv', header=T,
+                    na.strings=c("NA","#DIV/0!", ""))
+
+#clean data and remove irrelevant columns
+zero_colnames <- sapply(names(validation), function(x) all(is.na(validation[,x])==TRUE))
+non_zero_colnames <- names(zero_colnames)[zero_colnames==FALSE]
+
+non_zero_colnames<- non_zero_colnames[-(1:7)]
+non_zero_colnames <- non_zero_colnames[1:(length(non_zero_colnames)-1)]
+
+training<-training[,c(non_zero_colnames,"classe")]
+validation<-validation[,c(non_zero_colnames,"problem_id")]
+```
+
+### 2. DATA PARTITIONING
+The training data is split into training and testing partitions (70/30 ratio). File "pml-testing.csv" is used for final prediction. Cross validation is used within the training partition to improve the model fit and then an out-of-sample test is done with the testing partition.
+
+```{r datapartition}
+set.seed(12345)
+inTrain <- createDataPartition(training$classe, p=0.70, list=FALSE)
+TrainSet <- training[inTrain, ] 
+TestSet <- training[-inTrain, ]
+```
+
+
+### 3. CROSS VALIDATION AND MODEL BUILDING
+Three different model algorithms are used and then reviewed to see which of them provides the best out-of-sample accuracy. Cross validation has been done for each model with K = 3. The three model types used to test are:
+
+- Decision trees  (rpart)  
+- Gradient boosting trees (gbm)
+- Random forest (rf)
+
+**Cross Validation**
+
+
+```{r crossvalidation}
+trControl <- trainControl(method="cv", number = 3, 
+                          allowParallel = TRUE)
+
+```
+
+
+
+**Decision Trees/CART**
+
+```{r dt}
+
+# Decision Trees
+model.dt <- train(classe ~ ., data = TrainSet, method = "rpart", 
+                  trControl = trControl)
+predict.dt <- predict(model.dt, newdata = TestSet)
+cm.dt<-confusionMatrix(predict.dt, as.factor(TestSet$classe))
+```
+
+
+**Random Forests**
+
+```{r rf}
+
+model.rf <- train(classe ~ ., data=TrainSet, method="rf",
+                          trControl=trControl)
+predict.rf <- predict(model.rf, newdata = TestSet)
+cm.rf<-confusionMatrix(predict.rf, as.factor(TestSet$classe))
+
+```
+
+**Gradient Boosted Machines**
+
+```{r gbm}
+model.gbm <- train(classe ~ ., data = TrainSet, method = "gbm", 
+                   trControl = trControl, verbose = FALSE)
+predict.gbm <- predict(model.gbm, newdata = TestSet)
+cm.gbm<-confusionMatrix(predict.gbm, as.factor(TestSet$classe))
+
+```
+
+### 4. MODEL ASSESSMENT
+```{r modelassessment}
+Results <- data.frame(
+      Model = c('CART', 'GBM', 'RF'),
+      Accuracy = rbind(cm.dt$overall[1], cm.gbm$overall[1], cm.rf$overall[1]),
+      Kappa = rbind(cm.dt$overall[2], cm.gbm$overall[2], cm.rf$overall[2]),
+      AccuracyLower = rbind(cm.dt$overall[3], cm.gbm$overall[3],
+                            cm.rf$overall[3]),
+      AccuracyUpper = rbind(cm.dt$overall[4], cm.gbm$overall[4],
+                            cm.rf$overall[4])
+     
+      
+)
+print(Results)
+```
+After review of 3 model fits and out-of-sample results, it looks like both gradient boosting and random forests outperform the CART model, with random forest being slightly more accurate (*99%*). Random Forest model will therefore be used for prediction. The confusion matrix for the random forest model is below.
+
+```{r finalmodel, echo=FALSE}
+cm.rf$table
+```
+
+The random forest model with highest accuracy includes the following 5 features as the most important for predicting the exercise. 
+
+```{r top, echo=FALSE}
+vi <- varImp(model.rf)$importance
+o <- order(vi$Overall, decreasing = TRUE)
+vio <- vi[o,,drop = FALSE] 
+round(head(vio,5),2)
+```
+
+### 5. PREDICTION 
+Finally, applied Random Forest model to the validation data sample (*pml-testing.csv*) to predict a classe for each of the 20 observations. 
+```{r prediction}
+
+predictTEST <- predict(model.rf, newdata=validation)
+predictTEST
+   
+
+```
+
+### APPENDIX
+
+```{r plot}
+fancyRpartPlot(model.dt$finalModel)
+plot(varImp(model.rf), top = 5)
+
+
+```
