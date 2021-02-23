@@ -1,6 +1,6 @@
 
 ### To view HTML file
-https://htmlpreview.github.io/?https://github.com/artinarayan/MachineLearning/blob/master/MachineLearningModel.html
+https://artinarayan.github.io/MachineLearning/index.html
 
 ### Data Files
 https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
