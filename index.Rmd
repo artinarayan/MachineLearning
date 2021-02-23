@@ -12,7 +12,7 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE,echo = TRUE,cache = TRUE)
 ```
-[Github Repo](https://github.com/artinarayan/MachineLearning)
+[Github Repository](https://github.com/artinarayan/MachineLearning)
 
 ## Overview 
 
